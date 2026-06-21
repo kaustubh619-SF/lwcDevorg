@@ -1,0 +1,29 @@
+name: Validate Salesforce Deployment
+
+on:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        run: npm install -g @salesforce/cli
+
+      - name: Authenticate Org
+        run: |
+          echo "${{ secrets.SFDX_AUTH_URL }}" > authfile.txt
+          sf org login sfdx-url --sfdx-url-file authfile.txt --alias DevOrg
+
+      - name: Validate Deployment
+        run: |
+          sf project deploy validate \
+          --source-dir force-app \
+          --target-org DevOrg \
+          --test-level RunLocalTests
