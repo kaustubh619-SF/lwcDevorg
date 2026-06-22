@@ -12,19 +12,33 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Salesforce CLI
         run: npm install -g @salesforce/cli
+
+      - name: Install Delta Plugin
+        run: echo y | sf plugins install sfdx-git-delta
 
       - name: Authenticate UAT Org
         run: |
           echo "${{ secrets.SFDX_AUTH_URL }}" > authfile.txt
           sf org login sfdx-url --sfdx-url-file authfile.txt --alias UAT
 
-      - name: Deploy to UAT
+      - name: Generate Delta Package
+        run: |
+          mkdir delta
+          sf sgd source delta --to HEAD --from HEAD~1 --output delta --source force-app
+
+      - name: Show Generated Package
+        run: |
+          cat delta/package/package.xml
+
+      - name: Deploy Delta to UAT
         run: |
           sf project deploy start \
-            --source-dir force-app \
+            --manifest delta/package/package.xml \
             --target-org UAT \
             --test-level RunSpecifiedTests \
             --tests PrintNumbersTest
